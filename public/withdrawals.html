@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Penarikan | Payment Gateway</title>
+  <link rel="stylesheet" href="./assets/style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+  <!-- Drawer -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="text-center py-4 border-b border-gray-600 mb-4">
+      <i class="fas fa-wallet text-3xl text-blue-400"></i>
+      <p class="font-bold text-lg mt-1">Gateway</p>
+      <p class="text-xs text-gray-400" id="drawerUsername">User</p>
+    </div>
+    <a href="/dashboard.html"><i class="fas fa-chart-pie menu-icon"></i> Dashboard</a>
+    <a href="/transactions.html"><i class="fas fa-exchange-alt menu-icon"></i> Transaksi</a>
+    <a href="/withdrawals.html" class="active"><i class="fas fa-hand-holding-usd menu-icon"></i> Penarikan</a>
+    <a href="/profile.html"><i class="fas fa-user menu-icon"></i> Profile</a>
+    <a href="/api-docs.html"><i class="fas fa-book menu-icon"></i> Panduan API</a>
+    <div class="logout"><a href="#" onclick="logout()"><i class="fas fa-sign-out-alt menu-icon"></i> Logout</a></div>
+  </div>
+
+  <!-- Main -->
+  <div class="container">
+    <div class="navbar">
+      <div><button class="drawer-toggle" onclick="toggleDrawer()"><i class="fas fa-bars"></i></button><span class="navbar-brand">Payment Gateway</span></div>
+      <div class="navbar-right"><span id="headerUser">User</span><span class="saldo" id="headerSaldo">Rp 0</span></div>
+    </div>
+
+    <h2 class="text-2xl font-bold mb-4">Penarikan</h2>
+
+    <!-- Tab Manual / Instan -->
+    <div class="flex gap-2 mb-4 border-b">
+      <button onclick="showTab('manual')" id="tabManual" class="px-4 py-2 font-semibold border-b-2 border-blue-600 text-blue-600">Manual</button>
+      <button onclick="showTab('instan')" id="tabInstan" class="px-4 py-2 font-semibold text-gray-500">Instan</button>
+    </div>
+
+    <!-- Form Manual -->
+    <div id="wdManual" class="card">
+      <h3 class="text-lg font-semibold mb-2">Penarikan Manual</h3>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <p><span class="font-medium">Saldo tersedia:</span> <span id="saldoManual">Rp 0</span></p>
+          <p><span class="font-medium">Biaya admin:</span> Bank Rp 3.000 | E-Wallet Rp 2.000</p>
+          <p><span class="font-medium">Minimal penarikan:</span> Rp 10.000</p>
+        </div>
+        <div>
+          <label class="block text-sm">Metode</label>
+          <select id="wdMethod" class="w-full border p-2 rounded mt-1" onchange="toggleFields()">
+            <option value="bank">Bank</option>
+            <option value="ewallet">E-Wallet</option>
+          </select>
+          <div id="bankFields">
+            <label class="block text-sm mt-2">Nama Rekening</label>
+            <input type="text" id="wdBankName" class="w-full border p-2 rounded mt-1" placeholder="Nama pemilik">
+            <label class="block text-sm mt-2">Nomor Rekening</label>
+            <input type="text" id="wdBankAcc" class="w-full border p-2 rounded mt-1" placeholder="Nomor rekening">
+          </div>
+          <div id="ewalletFields" style="display:none;">
+            <label class="block text-sm mt-2">Provider</label>
+            <select id="wdEwalletProvider" class="w-full border p-2 rounded mt-1">
+              <option value="gopay">GoPay</option><option value="ovo">OVO</option><option value="dana">DANA</option>
+            </select>
+            <label class="block text-sm mt-2">Nomor Akun (HP)</label>
+            <input type="text" id="wdEwalletAcc" class="w-full border p-2 rounded mt-1" placeholder="Nomor HP">
+          </div>
+          <label class="block text-sm mt-2">Nominal</label>
+          <input type="number" id="wdNominal" class="w-full border p-2 rounded mt-1" placeholder="Min Rp 10.000">
+          <button onclick="processWithdraw('manual')" class="btn btn-success w-full mt-3">Proses Penarikan</button>
+          <div id="wdResult" class="mt-2 text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Instan -->
+    <div id="wdInstan" class="card" style="display:none;">
+      <h3 class="text-lg font-semibold mb-2">Penarikan Instan</h3>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <p><span class="font-medium">Saldo tersedia:</span> <span id="saldoInstan">Rp 0</span></p>
+          <p><span class="font-medium">Biaya admin:</span> Bank Rp 3.000 | E-Wallet Rp 2.000</p>
+          <p><span class="font-medium">Minimal penarikan:</span> Rp 10.000</p>
+        </div>
+        <div>
+          <label class="block text-sm">Metode</label>
+          <select id="wdMethodInstan" class="w-full border p-2 rounded mt-1" onchange="toggleFieldsInstan()">
+            <option value="bank">Bank</option><option value="ewallet">E-Wallet</option>
+          </select>
+          <div id="bankFieldsInstan">
+            <label class="block text-sm mt-2">Nama Rekening</label>
+            <input type="text" id="wdBankNameInstan" class="w-full border p-2 rounded mt-1" placeholder="Nama pemilik">
+            <label class="block text-sm mt-2">Nomor Rekening</label>
+            <input type="text" id="wdBankAccInstan" class="w-full border p-2 rounded mt-1" placeholder="Nomor rekening">
+          </div>
+          <div id="ewalletFieldsInstan" style="display:none;">
+            <label class="block text-sm mt-2">Provider</label>
+            <select id="wdEwalletProviderInstan" class="w-full border p-2 rounded mt-1">
+              <option value="gopay">GoPay</option><option value="ovo">OVO</option><option value="dana">DANA</option>
+            </select>
+            <label class="block text-sm mt-2">Nomor Akun (HP)</label>
+            <input type="text" id="wdEwalletAccInstan" class="w-full border p-2 rounded mt-1" placeholder="Nomor HP">
+          </div>
+          <label class="block text-sm mt-2">Nominal</label>
+          <input type="number" id="wdNominalInstan" class="w-full border p-2 rounded mt-1" placeholder="Min Rp 10.000">
+          <button onclick="processWithdraw('instan')" class="btn btn-primary w-full mt-3">Proses Penarikan Instan</button>
+          <div id="wdResultInstan" class="mt-2 text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Riwayat Penarikan -->
+    <h4 class="font-semibold mt-6">Riwayat Penarikan</h4>
+    <div class="flex flex-wrap gap-2 my-2">
+      <select id="wdFilterStatus" onchange="loadWithdrawals()" class="border p-2 rounded">
+        <option value="Semua">Semua Status</option>
+        <option value="success">Success</option>
+        <option value="pending">Pending</option>
+        <option value="failed">Failed</option>
+      </select>
+      <input type="text" id="wdSearch" placeholder="Cari ID" oninput="loadWithdrawals()" class="border p-2 rounded flex-1">
+    </div>
+    <div class="card table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Metode</th><th>Jumlah</th><th>Fee</th><th>Status</th><th>Tanggal</th></tr></thead>
+        <tbody id="wdTableBody"></tbody>
+      </table>
+      <div id="wdEmpty" class="p-4 text-gray-500 text-center">Belum ada penarikan</div>
+    </div>
+  </div>
+
+  <script src="./assets/app.js"></script>
+  <script>
+    function toggleFields() {
+      const method = document.getElementById('wdMethod').value;
+      document.getElementById('bankFields').style.display = method === 'bank' ? 'block' : 'none';
+      document.getElementById('ewalletFields').style.display = method === 'ewallet' ? 'block' : 'none';
+    }
+    function toggleFieldsInstan() {
+      const method = document.getElementById('wdMethodInstan').value;
+      document.getElementById('bankFieldsInstan').style.display = method === 'bank' ? 'block' : 'none';
+      document.getElementById('ewalletFieldsInstan').style.display = method === 'ewallet' ? 'block' : 'none';
+    }
+    function showTab(tab) {
+      document.getElementById('wdManual').style.display = tab === 'manual' ? 'block' : 'none';
+      document.getElementById('wdInstan').style.display = tab === 'instan' ? 'block' : 'none';
+      const m = document.getElementById('tabManual');
+      const i = document.getElementById('tabInstan');
+      if (tab === 'manual') { m.className = 'px-4 py-2 font-semibold border-b-2 border-blue-600 text-blue-600'; i.className = 'px-4 py-2 font-semibold text-gray-500'; }
+      else { m.className = 'px-4 py-2 font-semibold text-gray-500'; i.className = 'px-4 py-2 font-semibold border-b-2 border-blue-600 text-blue-600'; }
+    }
+
+    async function updateSaldo() {
+      const res = await authFetch('/api/dashboard');
+      const data = await res.json();
+      document.getElementById('saldoManual').textContent = 'Rp ' + data.totalBalance.toLocaleString();
+      document.getElementById('saldoInstan').textContent = 'Rp ' + data.totalBalance.toLocaleString();
+      document.getElementById('headerSaldo').textContent = 'Rp ' + data.totalBalance.toLocaleString();
+    }
+
+    async function processWithdraw(type) {
+      const isInstan = type === 'instan';
+      const method = document.getElementById(isInstan ? 'wdMethodInstan' : 'wdMethod').value;
+      const accountNumber = document.getElementById(isInstan ? (method === 'bank' ? 'wdBankAccInstan' : 'wdEwalletAccInstan') : (method === 'bank' ? 'wdBankAcc' : 'wdEwalletAcc')).value;
+      const accountName = document.getElementById(isInstan ? (method === 'bank' ? 'wdBankNameInstan' : 'wdBankNameInstan') : (method === 'bank' ? 'wdBankName' : 'wdBankName')).value;
+      const ewalletProvider = method === 'ewallet' ? document.getElementById(isInstan ? 'wdEwalletProviderInstan' : 'wdEwalletProvider').value : null;
+      const amount = parseInt(document.getElementById(isInstan ? 'wdNominalInstan' : 'wdNominal').value);
+      const resultDiv = document.getElementById(isInstan ? 'wdResultInstan' : 'wdResult');
+      if (!amount || amount < 10000) { resultDiv.innerHTML = '<span class="text-red-600">Minimal Rp 10.000</span>'; return; }
+      try {
+        const endpoint = isInstan ? '/api/withdraw/instant' : '/api/withdraw';
+        const res = await authFetch(endpoint, {
+          method: 'POST',
+          body: JSON.stringify({ method, accountNumber, accountName, amount, ewalletProvider })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          resultDiv.innerHTML = '<span class="text-green-600">✅ Penarikan berhasil!</span>';
+          updateSaldo();
+          loadWithdrawals();
+        } else {
+          resultDiv.innerHTML = '<span class="text-red-600">' + data.error + '</span>';
+        }
+      } catch (e) { resultDiv.innerHTML = '<span class="text-red-600">Error: ' + e.message + '</span>'; }
+    }
+
+    async function loadWithdrawals() {
+      const status = document.getElementById('wdFilterStatus').value;
+      const search = document.getElementById('wdSearch').value;
+      const url = `/api/withdrawals?status=${status}&search=${search}`;
+      try {
+        const res = await authFetch(url);
+        const data = await res.json();
+        const tbody = document.getElementById('wdTableBody');
+        const empty = document.getElementById('wdEmpty');
+        if (data.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+        empty.style.display = 'none';
+        tbody.innerHTML = data.map(w => `
+          <tr>
+            <td>${w.id}</td>
+            <td>${w.method} ${w.ewalletProvider ? '('+w.ewalletProvider+')' : ''}</td>
+            <td>Rp ${w.amount.toLocaleString()}</td>
+            <td>Rp ${w.fee.toLocaleString()}</td>
+            <td><span class="badge ${w.status === 'success' ? 'badge-success' : w.status === 'pending' ? 'badge-pending' : 'badge-failed'}">${w.status}</span></td>
+            <td>${new Date(w.createdAt).toLocaleString()}</td>
+          </tr>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    window.loadPageData = function() { updateSaldo(); loadWithdrawals(); };
+    document.addEventListener('DOMContentLoaded', function() {
+      if (getToken()) { updateSaldo(); loadWithdrawals(); }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transaksi | Payment Gateway</title>
+  <link rel="stylesheet" href="./assets/style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+  <!-- Drawer (sama seperti dashboard) -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="text-center py-4 border-b border-gray-600 mb-4">
+      <i class="fas fa-wallet text-3xl text-blue-400"></i>
+      <p class="font-bold text-lg mt-1">Gateway</p>
+      <p class="text-xs text-gray-400" id="drawerUsername">User</p>
+    </div>
+    <a href="/dashboard.html"><i class="fas fa-chart-pie menu-icon"></i> Dashboard</a>
+    <a href="/transactions.html" class="active"><i class="fas fa-exchange-alt menu-icon"></i> Transaksi</a>
+    <a href="/withdrawals.html"><i class="fas fa-hand-holding-usd menu-icon"></i> Penarikan</a>
+    <a href="/profile.html"><i class="fas fa-user menu-icon"></i> Profile</a>
+    <a href="/api-docs.html"><i class="fas fa-book menu-icon"></i> Panduan API</a>
+    <div class="logout"><a href="#" onclick="logout()"><i class="fas fa-sign-out-alt menu-icon"></i> Logout</a></div>
+  </div>
+
+  <!-- Main -->
+  <div class="container">
+    <div class="navbar">
+      <div>
+        <button class="drawer-toggle" onclick="toggleDrawer()"><i class="fas fa-bars"></i></button>
+        <span class="navbar-brand">Payment Gateway</span>
+      </div>
+      <div class="navbar-right">
+        <span id="headerUser">User</span>
+        <span class="saldo" id="headerSaldo">Rp 0</span>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold">Transaksi</h2>
+      <button onclick="openCreateTx()" class="btn btn-primary"><i class="fas fa-plus"></i> Buat Transaksi</button>
+    </div>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <select id="txFilterStatus" onchange="loadTransactions()" class="border p-2 rounded">
+        <option value="Semua">Semua Status</option>
+        <option value="Paid">Paid</option>
+        <option value="Pending">Pending</option>
+        <option value="Failed">Failed</option>
+      </select>
+      <input type="text" id="txSearch" placeholder="Cari ID Invoice" oninput="loadTransactions()" class="border p-2 rounded flex-1 min-w-[150px]">
+    </div>
+    <div class="card table-wrap" id="txList">
+      <table>
+        <thead><tr><th>Invoice</th><th>Jumlah</th><th>Status</th><th>Tanggal</th></tr></thead>
+        <tbody id="txTableBody"></tbody>
+      </table>
+      <div id="txEmpty" class="p-4 text-gray-500 text-center">Belum ada transaksi</div>
+    </div>
+  </div>
+
+  <!-- Modal Create -->
+  <div id="createTxModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <button class="close" onclick="closeModal()">&times;</button>
+      <h3 class="text-xl font-bold mb-4">Buat Transaksi</h3>
+      <label class="block text-sm">Nominal Deposit (Min. Rp 500)</label>
+      <input type="number" id="txAmount" class="w-full border p-2 rounded mt-1" min="500" placeholder="Rp 500">
+      <div class="flex gap-2 mt-4">
+        <button onclick="createTransaction()" class="btn btn-primary flex-1">Buat Invoice</button>
+        <button onclick="closeModal()" class="btn bg-gray-300 flex-1">Batal</button>
+      </div>
+      <div id="txCreateResult" class="mt-3 text-sm"></div>
+    </div>
+  </div>
+
+  <script src="./assets/app.js"></script>
+  <script>
+    async function loadTransactions() {
+      const status = document.getElementById('txFilterStatus').value;
+      const search = document.getElementById('txSearch').value;
+      const url = `/api/transactions?status=${status}&search=${search}`;
+      try {
+        const res = await authFetch(url);
+        const data = await res.json();
+        const tbody = document.getElementById('txTableBody');
+        const empty = document.getElementById('txEmpty');
+        if (data.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+        empty.style.display = 'none';
+        tbody.innerHTML = data.map(t => `
+          <tr>
+            <td>${t.invoiceId}</td>
+            <td>Rp ${t.amount.toLocaleString()}</td>
+            <td><span class="badge ${t.status === 'paid' ? 'badge-paid' : t.status === 'pending' ? 'badge-pending' : 'badge-failed'}">${t.status}</span></td>
+            <td>${new Date(t.createdAt).toLocaleString()}</td>
+          </tr>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    function openCreateTx() {
+      document.getElementById('createTxModal').style.display = 'flex';
+      document.getElementById('txAmount').value = '';
+      document.getElementById('txCreateResult').innerHTML = '';
+    }
+    function closeModal() {
+      document.getElementById('createTxModal').style.display = 'none';
+    }
+    async function createTransaction() {
+      const amount = document.getElementById('txAmount').value;
+      if (!amount || amount < 500) {
+        document.getElementById('txCreateResult').innerHTML = '<span class="text-red-600">Minimal Rp 500</span>';
+        return;
+      }
+      try {
+        const res = await authFetch('/api/transactions/create', {
+          method: 'POST',
+          body: JSON.stringify({ amount: parseInt(amount) })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('txCreateResult').innerHTML = `
+            <span class="text-green-600">✅ Invoice ${data.transaction.invoiceId} dibuat!</span>
+            <br><img src="${data.transaction.qrImage}" class="w-32 h-32 mt-2 mx-auto" />
+          `;
+          loadTransactions();
+        } else {
+          document.getElementById('txCreateResult').innerHTML = '<span class="text-red-600">' + data.error + '</span>';
+        }
+      } catch (e) {
+        document.getElementById('txCreateResult').innerHTML = '<span class="text-red-600">Error: ' + e.message + '</span>';
+      }
+    }
+
+    window.loadPageData = loadTransactions;
+    document.addEventListener('DOMContentLoaded', function() {
+      if (getToken()) loadTransactions();
+    });
+  </script>
+</body>
+</html>

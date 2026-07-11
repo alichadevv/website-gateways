@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Payment Gateway</title>
+  <link rel="stylesheet" href="./assets/style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+  <!-- Drawer -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="text-center py-4 border-b border-gray-600 mb-4">
+      <i class="fas fa-wallet text-3xl text-blue-400"></i>
+      <p class="font-bold text-lg mt-1">Gateway</p>
+      <p class="text-xs text-gray-400" id="drawerUsername">User</p>
+    </div>
+    <a href="/dashboard.html" class="active"><i class="fas fa-chart-pie menu-icon"></i> Dashboard</a>
+    <a href="/transactions.html"><i class="fas fa-exchange-alt menu-icon"></i> Transaksi</a>
+    <a href="/withdrawals.html"><i class="fas fa-hand-holding-usd menu-icon"></i> Penarikan</a>
+    <a href="/profile.html"><i class="fas fa-user menu-icon"></i> Profile</a>
+    <a href="/api-docs.html"><i class="fas fa-book menu-icon"></i> Panduan API</a>
+    <div class="logout"><a href="#" onclick="logout()"><i class="fas fa-sign-out-alt menu-icon"></i> Logout</a></div>
+  </div>
+
+  <!-- Main -->
+  <div class="container">
+    <div class="navbar">
+      <div>
+        <button class="drawer-toggle" onclick="toggleDrawer()"><i class="fas fa-bars"></i></button>
+        <span class="navbar-brand">Payment Gateway</span>
+      </div>
+      <div class="navbar-right">
+        <span id="headerUser">User</span>
+        <span class="saldo" id="headerSaldo">Rp 0</span>
+      </div>
+    </div>
+
+    <h2 class="text-2xl font-bold mb-4">Dashboard</h2>
+    <div class="stat-grid" id="stats">
+      <div class="stat-item"><div class="label">Saldo Aktif</div><div class="value" id="dashSaldo">Rp 0</div></div>
+      <div class="stat-item"><div class="label">Total Pemasukan</div><div class="value text-green-600" id="dashIncome">Rp 0</div></div>
+      <div class="stat-item"><div class="label">Total Pengeluaran</div><div class="value text-red-600" id="dashExpense">Rp 0</div></div>
+      <div class="stat-item"><div class="label">Total Transaksi</div><div class="value" id="dashTotalTx">0</div></div>
+    </div>
+  </div>
+
+  <script src="./assets/app.js"></script>
+  <script>
+    async function loadDashboard() {
+      try {
+        const res = await authFetch('/api/dashboard');
+        const data = await res.json();
+        document.getElementById('dashSaldo').textContent = 'Rp ' + data.totalBalance.toLocaleString();
+        document.getElementById('dashIncome').textContent = 'Rp ' + data.totalIncome.toLocaleString();
+        document.getElementById('dashExpense').textContent = 'Rp ' + data.totalExpense.toLocaleString();
+        document.getElementById('dashTotalTx').textContent = data.totalTransactions;
+        document.getElementById('headerSaldo').textContent = 'Rp ' + data.totalBalance.toLocaleString();
+      } catch (e) { console.error(e); }
+    }
+
+    // Override loadPageData dari app.js
+    window.loadPageData = loadDashboard;
+    // Jika sudah selesai load, panggil langsung
+    document.addEventListener('DOMContentLoaded', function() {
+      if (getToken()) loadDashboard();
+    });
+  </script>
+</body>
+</html>

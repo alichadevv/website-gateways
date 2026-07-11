@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile | Payment Gateway</title>
+  <link rel="stylesheet" href="./assets/style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+  <!-- Drawer -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="text-center py-4 border-b border-gray-600 mb-4">
+      <i class="fas fa-wallet text-3xl text-blue-400"></i>
+      <p class="font-bold text-lg mt-1">Gateway</p>
+      <p class="text-xs text-gray-400" id="drawerUsername">User</p>
+    </div>
+    <a href="/dashboard.html"><i class="fas fa-chart-pie menu-icon"></i> Dashboard</a>
+    <a href="/transactions.html"><i class="fas fa-exchange-alt menu-icon"></i> Transaksi</a>
+    <a href="/withdrawals.html"><i class="fas fa-hand-holding-usd menu-icon"></i> Penarikan</a>
+    <a href="/profile.html" class="active"><i class="fas fa-user menu-icon"></i> Profile</a>
+    <a href="/api-docs.html"><i class="fas fa-book menu-icon"></i> Panduan API</a>
+    <div class="logout"><a href="#" onclick="logout()"><i class="fas fa-sign-out-alt menu-icon"></i> Logout</a></div>
+  </div>
+
+  <!-- Main -->
+  <div class="container">
+    <div class="navbar">
+      <div><button class="drawer-toggle" onclick="toggleDrawer()"><i class="fas fa-bars"></i></button><span class="navbar-brand">Payment Gateway</span></div>
+      <div class="navbar-right"><span id="headerUser">User</span><span class="saldo" id="headerSaldo">Rp 0</span></div>
+    </div>
+
+    <h2 class="text-2xl font-bold mb-4">Profile</h2>
+    <div class="card max-w-lg">
+      <form id="profileForm">
+        <div class="mb-3"><label class="block text-sm">Username</label><input type="text" id="profUsername" class="w-full border p-2 rounded" disabled></div>
+        <div class="mb-3"><label class="block text-sm">Email</label><input type="email" id="profEmail" class="w-full border p-2 rounded"></div>
+        <div class="mb-3"><label class="block text-sm">Role</label><input type="text" id="profRole" class="w-full border p-2 rounded" disabled></div>
+        <div class="mb-3"><label class="block text-sm">Tanggal Bergabung</label><input type="text" id="profJoined" class="w-full border p-2 rounded" disabled></div>
+        <div class="mb-3"><label class="block text-sm">API Key</label>
+          <div class="flex"><input type="text" id="profApiKey" class="flex-1 border p-2 rounded-l" disabled><button type="button" onclick="regenerateApiKey()" class="bg-yellow-500 text-white px-3 rounded-r hover:bg-yellow-600"><i class="fas fa-sync-alt"></i></button></div>
+        </div>
+        <div class="mb-3"><label class="block text-sm">Password Baru (opsional)</label><input type="password" id="profPassword" class="w-full border p-2 rounded" placeholder="Kosongkan jika tidak diubah"></div>
+        <button type="submit" class="btn btn-primary">Simpan Profile</button>
+      </form>
+      <div id="profileMsg" class="mt-3 text-sm"></div>
+    </div>
+  </div>
+
+  <script src="./assets/app.js"></script>
+  <script>
+    async function loadProfile() {
+      try {
+        const res = await authFetch('/api/user/profile');
+        const user = await res.json();
+        document.getElementById('profUsername').value = user.username;
+        document.getElementById('profEmail').value = user.email;
+        document.getElementById('profRole').value = user.role;
+        document.getElementById('profJoined').value = new Date(user.joinedAt).toLocaleString();
+        document.getElementById('profApiKey').value = user.apiKey;
+        document.getElementById('drawerUsername').textContent = user.username;
+        document.getElementById('headerUser').textContent = user.username;
+      } catch (e) { console.error(e); }
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('profEmail').value;
+      const password = document.getElementById('profPassword').value;
+      try {
+        const res = await authFetch('/api/user/profile', {
+          method: 'PUT',
+          body: JSON.stringify({ email, password: password || undefined })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('profileMsg').innerHTML = '<span class="text-green-600">✅ Profile berhasil diupdate</span>';
+          loadProfile();
+        } else {
+          document.getElementById('profileMsg').innerHTML = '<span class="text-red-600">' + data.error + '</span>';
+        }
+      } catch (e) {
+        document.getElementById('profileMsg').innerHTML = '<span class="text-red-600">Error: ' + e.message + '</span>';
+      }
+    });
+
+    async function regenerateApiKey() {
+      if (!confirm('Yakin ingin regenerate API Key?')) return;
+      try {
+        const res = await authFetch('/api/user/regenerate-apikey', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('profApiKey').value = data.apiKey;
+          document.getElementById('profileMsg').innerHTML = '<span class="text-green-600">✅ API Key baru dibuat</span>';
+        } else {
+          document.getElementById('profileMsg').innerHTML = '<span class="text-red-600">' + data.error + '</span>';
+        }
+      } catch (e) {
+        document.getElementById('profileMsg').innerHTML = '<span class="text-red-600">Error: ' + e.message + '</span>';
+      }
+    }
+
+    window.loadPageData = loadProfile;
+    document.addEventListener('DOMContentLoaded', function() {
+      if (getToken()) loadProfile();
+    });
+  </script>
+</body>
+</html>

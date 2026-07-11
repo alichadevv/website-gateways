@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Gateway</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    /* Sliding drawer */
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 280px;
+      height: 100%;
+      background: #1e293b;
+      color: #e2e8f0;
+      transition: left 0.3s ease;
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    .drawer.open {
+      left: 0;
+    }
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      display: none;
+    }
+    .drawer-overlay.open {
+      display: block;
+    }
+    .drawer a {
+      display: block;
+      padding: 0.75rem 1rem;
+      color: #cbd5e1;
+      border-radius: 0.5rem;
+      margin-bottom: 0.25rem;
+      transition: 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .drawer a:hover, .drawer a.active {
+      background: #334155;
+      color: white;
+    }
+    .drawer .menu-icon {
+      margin-right: 0.75rem;
+      width: 1.25rem;
+    }
+    .logout-btn {
+      border-top: 1px solid #475569;
+      margin-top: 1rem;
+      padding-top: 1rem;
+    }
+    .page {
+      display: none;
+    }
+    .page.active {
+      display: block;
+    }
+    .badge-status {
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-paid { background: #22c55e; color: white; }
+    .badge-pending { background: #eab308; color: white; }
+    .badge-failed { background: #ef4444; color: white; }
+    .badge-success { background: #22c55e; color: white; }
+  </style>
+</head>
+<body class="bg-gray-100">
+
+<!-- Drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="text-center py-4 border-b border-gray-600 mb-4">
+    <i class="fas fa-wallet text-3xl text-blue-400"></i>
+    <p class="font-bold text-lg mt-1">Gateway</p>
+    <p class="text-xs text-gray-400" id="drawerUsername">User</p>
+  </div>
+  <a onclick="showPage('dashboard')" class="active" id="navDashboard"><i class="fas fa-chart-pie menu-icon"></i> Dashboard</a>
+  <a onclick="showPage('transactions')" id="navTransactions"><i class="fas fa-exchange-alt menu-icon"></i> Transaksi</a>
+  <a onclick="showPage('withdraw')" id="navWithdraw"><i class="fas fa-hand-holding-usd menu-icon"></i> Penarikan</a>
+  <a onclick="showPage('profile')" id="navProfile"><i class="fas fa-user menu-icon"></i> Profile</a>
+  <a onclick="showPage('api-docs')" id="navApiDocs"><i class="fas fa-book menu-icon"></i> Panduan API</a>
+  <a href="https://example.com/update" target="_blank"><i class="fas fa-info-circle menu-icon"></i> Informasi Update</a>
+  <div class="logout-btn">
+    <a onclick="logout()"><i class="fas fa-sign-out-alt menu-icon"></i> Logout</a>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="container mx-auto px-4 py-6 max-w-6xl">
+  <!-- Top Bar -->
+  <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow mb-6">
+    <div>
+      <button onclick="toggleDrawer()" class="text-2xl text-gray-600"><i class="fas fa-bars"></i></button>
+      <span class="ml-3 font-semibold text-gray-700">Payment Gateway</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-sm text-gray-600" id="headerUser">User</span>
+      <span class="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full" id="headerSaldo">Rp 0</span>
+    </div>
+  </div>
+
+  <!-- PAGES -->
+  <div id="pageDashboard" class="page active">
+    <h2 class="text-2xl font-bold mb-4">Dashboard</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white p-4 rounded-lg shadow"><p class="text-gray-500 text-sm">Saldo Aktif</p><p class="text-2xl font-bold" id="dashSaldo">Rp 0</p></div>
+      <div class="bg-white p-4 rounded-lg shadow"><p class="text-gray-500 text-sm">Total Pemasukan</p><p class="text-2xl font-bold text-green-600" id="dashIncome">Rp 0</p></div>
+      <div class="bg-white p-4 rounded-lg shadow"><p class="text-gray-500 text-sm">Total Pengeluaran</p><p class="text-2xl font-bold text-red-600" id="dashExpense">Rp 0</p></div>
+      <div class="bg-white p-4 rounded-lg shadow"><p class="text-gray-500 text-sm">Total Transaksi</p><p class="text-2xl font-bold" id="dashTotalTx">0</p></div>
+    </div>
+  </div>
+
+  <div id="pageTransactions" class="page">
+    <div class="flex flex-wrap justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold">Transaksi</h2>
+      <button onclick="openCreateTx()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"><i class="fas fa-plus"></i> Buat Transaksi</button>
+    </div>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <select id="txFilterStatus" onchange="loadTransactions()" class="border p-2 rounded">
+        <option value="Semua">Semua Status</option>
+        <option value="Paid">Paid</option>
+        <option value="Pending">Pending</option>
+        <option value="Failed">Failed</option>
+      </select>
+      <input type="text" id="txSearch" placeholder="Cari ID Invoice" oninput="loadTransactions()" class="border p-2 rounded flex-1 min-w-[150px]">
+    </div>
+    <div id="txList" class="bg-white rounded-lg shadow overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left">Invoice</th><th class="px-4 py-2 text-left">Jumlah</th><th class="px-4 py-2 text-left">Status</th><th class="px-4 py-2 text-left">Tanggal</th></tr></thead>
+        <tbody id="txTableBody"></tbody>
+      </table>
+      <div id="txEmpty" class="p-4 text-gray-500 text-center">Belum ada transaksi</div>
+    </div>
+  </div>
+
+  <div id="pageWithdraw" class="page">
+    <h2 class="text-2xl font-bold mb-4">Penarikan</h2>
+    <div class="flex gap-2 mb-4 border-b">
+      <button onclick="showWithdrawTab('manual')" id="wdTabManual" class="px-4 py-2 font-semibold border-b-2 border-blue-600 text-blue-600">Manual</button>
+      <button onclick="showWithdrawTab('instan')" id="wdTabInstan" class="px-4 py-2 font-semibold text-gray-500">Instan</button>
+    </div>
+    <!-- Manual -->
+    <div id="wdManual" class="bg-white p-4 rounded-lg shadow">
+      <h3 class="text-lg font-semibold mb-2">Penarikan Manual</h3>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <p><span class="font-medium">Saldo tersedia:</span> <span id="wdSaldoManual">Rp 0</span></p>
+          <p><span class="font-medium">Biaya admin:</span> Bank Rp 3.000 | E-Wallet Rp 2.000</p>
+          <p><span class="font-medium">Minimal penarikan:</span> Rp 10.000</p>
+        </div>
+        <div>
+          <label class="block text-sm">Metode</label>
+          <select id="wdMethod" class="w-full border p-2 rounded mt-1" onchange="toggleWdFields()">
+            <option value="bank">Bank</option>
+            <option value="ewallet">E-Wallet</option>
+          </select>
+          <div id="wdBankFields">
+            <label class="block text-sm mt-2">Nama Rekening</label>
+            <input type="text" id="wdBankName" class="w-full border p-2 rounded mt-1" placeholder="Nama pemilik rekening">
+            <label class="block text-sm mt-2">Nomor Rekening</label>
+            <input type="text" id="wdBankAcc" class="w-full border p-2 rounded mt-1" placeholder="Nomor rekening">
+          </div>
+          <div id="wdEwalletFields" style="display:none;">
+            <label class="block text-sm mt-2">Provider E-Wallet</label>
+            <select id="wdEwalletProvider" class="w-full border p-2 rounded mt-1">
+              <option value="gopay">GoPay</option>
+              <option value="ovo">OVO</option>
+              <option value="dana">DANA</option>
+            </select>
+            <label class="block text-sm mt-2">Nomor Akun (HP)</label>
+            <input type="text" id="wdEwalletAcc" class="w-full border p-2 rounded mt-1" placeholder="Nomor HP">
+          </div>
+          <label class="block text-sm mt-2">Nominal</label>
+          <input type="number" id="wdNominal" class="w-full border p-2 rounded mt-1" placeholder="Min Rp 10.000">
+          <button onclick="processWithdraw('manual')" class="mt-3 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded w-full">Proses Penarikan</button>
+          <div id="wdResult" class="mt-2 text-sm"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Instan -->
+    <div id="wdInstan" style="display:none;" class="bg-white p-4 rounded-lg shadow">
+      <h3 class="text-lg font-semibold mb-2">Penarikan Instan</h3>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <p><span class="font-medium">Saldo tersedia:</span> <span id="wdSaldoInstan">Rp 0</span></p>
+          <p><span class="font-medium">Biaya admin:</span> Bank Rp 3.000 | E-Wallet Rp 2.000</p>
+          <p><span class="font-medium">Minimal penarikan:</span> Rp 10.000</p>
+        </div>
+        <div>
+          <label class="block text-sm">Metode</label>
+          <select id="wdMethodInstan" class="w-full border p-2 rounded mt-1" onchange="toggleWdFieldsInstan()">
+            <option value="bank">Bank</option>
+            <option value="ewallet">E-Wallet</option>
+          </select>
+          <div id="wdBankFieldsInstan">
+            <label class="block text-sm mt-2">Nama Rekening</label>
+            <input type="text" id="wdBankNameInstan" class="w-full border p-2 rounded mt-1" placeholder="Nama pemilik rekening">
+            <label class="block text-sm mt-2">Nomor Rekening</label>
+            <input type="text" id="wdBankAccInstan" class="w-full border p-2 rounded mt-1" placeholder="Nomor rekening">
+          </div>
+          <div id="wdEwalletFieldsInstan" style="display:none;">
+            <label class="block text-sm mt-2">Provider E-Wallet</label>
+            <select id="wdEwalletProviderInstan" class="w-full border p-2 rounded mt-1">
+              <option value="gopay">GoPay</option>
+              <option value="ovo">OVO</option>
+              <option value="dana">DANA</option>
+            </select>
+            <label class="block text-sm mt-2">Nomor Akun (HP)</label>
+            <input type="text" id="wdEwalletAccInstan" class="w-full border p-2 rounded mt-1" placeholder="Nomor HP">
+          </div>
+          <label class="block text-sm mt-2">Nominal</label>
+          <input type="number" id="wdNominalInstan" class="w-full border p-2 rounded mt-1" placeholder="Min Rp 10.000">
+          <button onclick="processWithdraw('instan')" class="mt-3 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded w-full">Proses Penarikan Instan</button>
+          <div id="wdResultInstan" class="mt-2 text-sm"></div>
+        </div>
+      </div>
+      <h4 class="font-semibold mt-6">Riwayat Penarikan</h4>
+      <div class="flex flex-wrap gap-2 my-2">
+        <select id="wdFilterStatus" onchange="loadWithdrawals()" class="border p-2 rounded">
+          <option value="Semua">Semua Status</option>
+          <option value="success">Success</option>
+          <option value="pending">Pending</option>
+          <option value="failed">Failed</option>
+        </select>
+        <input type="text" id="wdSearch" placeholder="Cari ID" oninput="loadWithdrawals()" class="border p-2 rounded flex-1">
+      </div>
+      <div id="wdList" class="bg-white rounded-lg shadow overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left">ID</th><th class="px-4 py-2 text-left">Metode</th><th class="px-4 py-2 text-left">Jumlah</th><th class="px-4 py-2 text-left">Fee</th><th class="px-4 py-2 text-left">Status</th><th class="px-4 py-2 text-left">Tanggal</th></tr></thead>
+          <tbody id="wdTableBody"></tbody>
+        </table>
+        <div id="wdEmpty" class="p-4 text-gray-500 text-center">Belum ada penarikan</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pageProfile" class="page">
+    <h2 class="text-2xl font-bold mb-4">Profile</h2>
+    <div class="bg-white p-6 rounded-lg shadow max-w-lg">
+      <form id="profileForm">
+        <div class="mb-3"><label class="block text-sm">Username</label><input type="text" id="profUsername" class="w-full border p-2 rounded" disabled></div>
+        <div class="mb-3"><label class="block text-sm">Email</label><input type="email" id="profEmail" class="w-full border p-2 rounded"></div>
+        <div class="mb-3"><label class="block text-sm">Role</label><input type="text" id="profRole" class="w-full border p-2 rounded" disabled></div>
+        <div class="mb-3"><label class="block text-sm">Tanggal Bergabung</label><input type="text" id="profJoined" class="w-full border p-2 rounded" disabled></div>
+        <div class="mb-3"><label class="block text-sm">API Key</label>
+          <div class="flex"><input type="text" id="profApiKey" class="flex-1 border p-2 rounded-l" disabled><button type="button" onclick="regenerateApiKey()" class="bg-yellow-500 text-white px-3 rounded-r hover:bg-yellow-600"><i class="fas fa-sync-alt"></i></button></div>
+        </div>
+        <div class="mb-3"><label class="block text-sm">Password Baru (opsional)</label><input type="password" id="profPassword" class="w-full border p-2 rounded" placeholder="Kosongkan jika tidak ingin diubah"></div>
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Simpan Profile</button>
+      </form>
+      <div id="profileMsg" class="mt-3 text-sm"></div>
+    </div>
+  </div>
+
+  <div id="pageApiDocs" class="page">
+    <h2 class="text-2xl font-bold mb-4">Panduan API</h2>
+    <div class="bg-white p-4 rounded-lg shadow">
+      <p class="mb-2">Berikut daftar endpoint yang tersedia di gateway ini.</p>
+      <div id="apiDocsList" class="text-sm"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Buat Transaksi -->
+<div id="createTxModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+    <h3 class="text-xl font-bold mb-4">Buat Transaksi</h3>
+    <label class="block text-sm">Nominal Deposit (Min. Rp 500)</label>
+    <input type="number" id="txAmount" class="w-full border p-2 rounded mt-1" min="500" placeholder="Rp 500">
+    <div class="flex gap-2 mt-4">
+      <button onclick="createTransaction()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex-1">Buat Invoice</button>
+      <button onclick="closeModal()" class="bg-gray-300 px-4 py-2 rounded">Batal</button>
+    </div>
+    <div id="txCreateResult" class="mt-3 text-sm"></div>
+  </div>
+</div>
+
+<script>
+  // ========== GLOBAL ==========
+  let token = localStorage.getItem('token');
+  let currentUser = null;
+
+  // ========== AUTH ==========
+  function checkAuth() {
+    if (!token) {
+      showLoginPage();
+      return false;
+    }
+    // Verify token by fetching profile
+    fetch('/api/user/profile', { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(res => {
+        if (!res.ok) throw new Error('Unauthorized');
+        return res.json();
+      })
+      .then(user => {
+        currentUser = user;
+        document.getElementById('drawerUsername').textContent = user.username;
+        document.getElementById('headerUser').textContent = user.username;
+        showPage('dashboard');
+        loadDashboard();
+        loadTransactions();
+        loadWithdrawals();
+        loadProfile();
+        loadApiDocs();
+      })
+      .catch(() => {
+        localStorage.removeItem('token');
+        token = null;
+        showLoginPage();
+      });
+    return true;
+  }
+
+  function showLoginPage() {
+    document.body.innerHTML = `
+      <div class="min-h-screen flex items-center justify-center bg-gray-100">
+        <div class="bg-white p-8 rounded-lg shadow-md w-96">
+          <h2 class="text-2xl font-bold mb-6 text-center">Login / Register</h2>
+          <div id="loginForm">
+            <input type="email" id="loginEmail" placeholder="Email" class="w-full border p-2 rounded mb-3">
+            <input type="password" id="loginPassword" placeholder="Password" class="w-full border p-2 rounded mb-3">
+            <button onclick="login()" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Login</button>
+            <p class="text-center mt-3 text-sm">Belum punya akun? <a href="#" onclick="showRegister()" class="text-blue-600">Daftar</a></p>
+            <div id="loginMsg" class="mt-2 text-sm text-red-600"></div>
+          </div>
+          <div id="registerForm" style="display:none;">
+            <input type="text" id="regUsername" placeholder="Username" class="w-full border p-2 rounded mb-3">
+            <input type="email" id="regEmail" placeholder="Email" class="w-full border p-2 rounded mb-3">
+            <input type="password" id="regPassword" placeholder="Password" class="w-full border p-2 rounded mb-3">
+            <button onclick="register()" class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">Daftar</button>
+            <p class="text-center mt-3 text-sm">Sudah punya akun? <a href="#" onclick="showLogin()" class="text-blue-600">Login</a></p>
+            <div id="registerMsg" class="mt-2 text-sm text-red-600"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  window.login = async function() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        token = data.token;
+        location.reload();
+      } else {
+        document.getElementById('loginMsg').textContent = data.error || 'Login gagal';
+      }
+    } catch (e) {
+      document.getElementById('loginMsg').textContent = 'Error: ' + e.message;
+    }
+  };
+
+  window.register = async function() {
+    const username = document.getElementById('regUsername').value;
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        token = data.token;
+        location.reload();
+      } else {
+        document.getElementById('registerMsg').textContent = data.error || 'Registrasi gagal';
+      }
+    } catch (e) {
+      document.getElementById('registerMsg').textContent = 'Error: ' + e.message;
+    }
+  };
+
+  window.showRegister = function() {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('registerForm').style.display = 'block';
+  };
+  window.showLogin = function() {
+    document.getElementById('loginForm').style.display = 'block';
+    document.getElementById('registerForm').style.display = 'none';
+  };
+
+  // ========== DRAWER ==========
+  window.toggleDrawer = function() {
+    const drawer = document.getElementById('drawer');
+    const overlay = document.getElementById('drawerOverlay');
+    drawer.classList.toggle('open');
+    overlay.classList.toggle('open');
+  };
+
+  // ========== NAVIGASI ==========
+  window.showPage = function(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page' + page.charAt(0).toUpperCase() + page.slice(1)).classList.add('active');
+    document.querySelectorAll('.drawer a').forEach(a => a.classList.remove('active'));
+    const navMap = { dashboard: 'navDashboard', transactions: 'navTransactions', withdraw: 'navWithdraw', profile: 'navProfile', 'api-docs': 'navApiDocs' };
+    if (navMap[page]) document.getElementById(navMap[page]).classList.add('active');
+    toggleDrawer();
+    if (page === 'dashboard') loadDashboard();
+    if (page === 'transactions') loadTransactions();
+    if (page === 'withdraw') { loadWithdrawals(); updateSaldoWd(); }
+    if (page === 'profile') loadProfile();
+    if (page === 'api-docs') loadApiDocs();
+  };
+
+  // ========== LOGOUT ==========
+  window.logout = function() {
+    localStorage.removeItem('token');
+    token = null;
+    location.reload();
+  };
+
+  // ========== DASHBOARD ==========
+  async function loadDashboard() {
+    try {
+      const res = await fetch('/api/dashboard', { headers: { 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      document.getElementById('dashSaldo').textContent = 'Rp ' + data.totalBalance.toLocaleString();
+      document.getElementById('dashIncome').textContent = 'Rp ' + data.totalIncome.toLocaleString();
+      document.getElementById('dashExpense').textContent = 'Rp ' + data.totalExpense.toLocaleString();
+      document.getElementById('dashTotalTx').textContent = data.totalTransactions;
+      document.getElementById('headerSaldo').textContent = 'Rp ' + data.totalBalance.toLocaleString();
+    } catch (e) { console.error(e); }
+  }
+
+  // ========== TRANSACTIONS ==========
+  async function loadTransactions() {
+    const status = document.getElementById('txFilterStatus').value;
+    const search = document.getElementById('txSearch').value;
+    const url = `/api/transactions?status=${status}&search=${search}`;
+    try {
+      const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      const tbody = document.getElementById('txTableBody');
+      const empty = document.getElementById('txEmpty');
+      if (data.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+      tbody.innerHTML = data.map(t => `
+        <tr>
+          <td class="px-4 py-2">${t.invoiceId}</td>
+          <td class="px-4 py-2">Rp ${t.amount.toLocaleString()}</td>
+          <td class="px-4 py-2"><span class="badge-status ${t.status === 'paid' ? 'badge-paid' : t.status === 'pending' ? 'badge-pending' : 'badge-failed'}">${t.status}</span></td>
+          <td class="px-4 py-2">${new Date(t.createdAt).toLocaleString()}</td>
+        </tr>
+      `).join('');
+    } catch (e) { console.error(e); }
+  }
+
+  // ========== CREATE TRANSACTION ==========
+  window.openCreateTx = function() {
+    document.getElementById('createTxModal').classList.remove('hidden');
+    document.getElementById('txAmount').value = '';
+    document.getElementById('txCreateResult').innerHTML = '';
+  };
+  window.closeModal = function() {
+    document.getElementById('createTxModal').classList.add('hidden');
+  };
+  window.createTransaction = async function() {
+    const amount = document.getElementById('txAmount').value;
+    if (!amount || amount < 500) {
+      document.getElementById('txCreateResult').innerHTML = '<span class="text-red-600">Minimal Rp 500</span>';
+      return;
+    }
+    try {
+      const res = await fetch('/api/transactions/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ amount: parseInt(amount) })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('txCreateResult').innerHTML = `<span class="text-green-600">✅ Invoice ${data.transaction.invoiceId} dibuat! <br> <img src="${data.transaction.qrImage}" class="w-32 h-32 mt-2 mx-auto" /></span>`;
+        loadTransactions();
+        loadDashboard();
+      } else {
+        document.getElementById('txCreateResult').innerHTML = '<span class="text-red-600">' + data.error + '</span>';
+      }
+    } catch (e) {
+      document.getElementById('txCreateResult').innerHTML = '<span class="text-red-600">Error: ' + e.message + '</span>';
+    }
+  };
+
+  // ========== WITHDRAW ==========
+  function toggleWdFields() {
+    const method = document.getElementById('wdMethod').value;
+    document.getElementById('wdBankFields').style.display = method === 'bank' ? 'block' : 'none';
+    document.getElementById('wdEwalletFields').style.display = method === 'ewallet' ? 'block' : 'none';
+  }
+  function toggleWdFieldsInstan() {
+    const method = document.getElementById('wdMethodInstan').value;
+    document.getElementById('wdBankFieldsInstan').style.display = method === 'bank' ? 'block' : 'none';
+    document.getElementById('wdEwalletFieldsInstan').style.display = method === 'ewallet' ? 'block' : 'none';
+  }
+  window.showWithdrawTab = function(tab) {
+    if (tab === 'manual') {
+      document.getElementById('wdManual').style.display = 'block';
+      document.getElementById('wdInstan').style.display = 'none';
+      document.getElementById('wdTabManual').className = 'px-4 py-2 font-semibold border-b-2 border-blue-600 text-blue-600';
+      document.getElementById('wdTabInstan').className = 'px-4 py-2 font-semibold text-gray-500';
+    } else {
+      document.getElementById('wdManual').style.display = 'none';
+      document.getElementById('wdInstan').style.display = 'block';
+      document.getElementById('wdTabManual').className = 'px-4 py-2 font-semibold text-gray-500';
+      document.getElementById('wdTabInstan').className = 'px-4 py-2 font-semibold border-b-2 border-blue-600 text-blue-600';
+      loadWithdrawals();
+    }
+  };
+
+  async function updateSaldoWd() {
+    const res = await fetch('/api/dashboard', { headers: { 'Authorization': 'Bearer ' + token } });
+    const data = await res.json();
+    document.getElementById('wdSaldoManual').textContent = 'Rp ' + data.totalBalance.toLocaleString();
+    document.getElementById('wdSaldoInstan').textContent = 'Rp ' + data.totalBalance.toLocaleString();
+  }
+
+  window.processWithdraw = async function(type) {
+    const isInstan = type === 'instan';
+    const method = document.getElementById(isInstan ? 'wdMethodInstan' : 'wdMethod').value;
+    const accountNumber = document.getElementById(isInstan ? (method === 'bank' ? 'wdBankAccInstan' : 'wdEwalletAccInstan') : (method === 'bank' ? 'wdBankAcc' : 'wdEwalletAcc')).value;
+    const accountName = document.getElementById(isInstan ? (method === 'bank' ? 'wdBankNameInstan' : 'wdBankNameInstan') : (method === 'bank' ? 'wdBankName' : 'wdBankName')).value;
+    const ewalletProvider = method === 'ewallet' ? document.getElementById(isInstan ? 'wdEwalletProviderInstan' : 'wdEwalletProvider').value : null;
+    const amount = parseInt(document.getElementById(isInstan ? 'wdNominalInstan' : 'wdNominal').value);
+    const resultDiv = document.getElementById(isInstan ? 'wdResultInstan' : 'wdResult');
+    if (!amount || amount < 10000) { resultDiv.innerHTML = '<span class="text-red-600">Minimal Rp 10.000</span>'; return; }
+    try {
+      const endpoint = isInstan ? '/api/withdraw/instant' : '/api/withdraw';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ method, accountNumber, accountName, amount, ewalletProvider })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        resultDiv.innerHTML = '<span class="text-green-600">✅ Penarikan berhasil!</span>';
+        loadDashboard();
+        updateSaldoWd();
+        loadWithdrawals();
+      } else {
+        resultDiv.innerHTML = '<span class="text-red-600">' + data.error + '</span>';
+      }
+    } catch (e) {
+      resultDiv.innerHTML = '<span class="text-red-600">Error: ' + e.message + '</span>';
+    }
+  };
+
+  async function loadWithdrawals() {
+    const status = document.getElementById('wdFilterStatus').value;
+    const search = document.getElementById('wdSearch').value;
+    const url = `/api/withdrawals?status=${status}&search=${search}`;
+    try {
+      const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      const tbody = document.getElementById('wdTableBody');
+      const empty = document.getElementById('wdEmpty');
+      if (data.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+      tbody.innerHTML = data.map(w => `
+        <tr>
+          <td class="px-4 py-2">${w.id}</td>
+          <td class="px-4 py-2">${w.method} ${w.ewalletProvider ? '('+w.ewalletProvider+')' : ''}</td>
+          <td class="px-4 py-2">Rp ${w.amount.toLocaleString()}</td>
+          <td class="px-4 py-2">Rp ${w.fee.toLocaleString()}</td>
+          <td class="px-4 py-2"><span class="badge-status ${w.status === 'success' ? 'badge-paid' : w.status === 'pending' ? 'badge-pending' : 'badge-failed'}">${w.status}</span></td>
+          <td class="px-4 py-2">${new Date(w.createdAt).toLocaleString()}</td>
+        </tr>
+      `).join('');
+    } catch (e) { console.error(e); }
+  }
+
+  // ========== PROFILE ==========
+  async function loadProfile() {
+    try {
+      const res = await fetch('/api/user/profile', { headers: { 'Authorization': 'Bearer ' + token } });
+      const user = await res.json();
+      document.getElementById('profUsername').value = user.username;
+      document.getElementById('profEmail').value = user.email;
+      document.getElementById('profRole').value = user.role;
+      document.getElementById('profJoined').value = new Date(user.joinedAt).toLocaleString();
+      document.getElementById('profApiKey').value = user.apiKey;
+    } catch (e) { console.error(e); }
+  }
+
+  document.getElementById('profileForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const email = document.getElementById('profEmail').value;
+    const password = document.getElementById('profPassword').value;
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ email, password: password || undefined })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('profileMsg').innerHTML = '<span class="text-green-600">✅ Profile berhasil diupdate</span>';
+        loadProfile();
+      } else {
+        document.getElementById('profileMsg').innerHTML = '<span class="text-red-600">' + data.error + '</span>';
+      }
+    } catch (e) {
+      document.getElementById('profileMsg').innerHTML = '<span class="text-red-600">Error: ' + e.message + '</span>';
+    }
+  });
+
+  window.regenerateApiKey = async function() {
+    if (!confirm('Yakin ingin regenerate API Key?')) return;
+    try {
+      const res = await fetch('/api/user/regenerate-apikey', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('profApiKey').value = data.apiKey;
+        document.getElementById('profileMsg').innerHTML = '<span class="text-green-600">✅ API Key baru dibuat</span>';
+      } else {
+        document.getElementById('profileMsg').innerHTML = '<span class="text-red-600">' + data.error + '</span>';
+      }
+    } catch (e) {
+      document.getElementById('profileMsg').innerHTML = '<span class="text-red-600">Error: ' + e.message + '</span>';
+    }
+  };
+
+  // ========== API DOCS ==========
+  async function loadApiDocs() {
+    try {
+      const res = await fetch('/api/api-docs', { headers: { 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      let html = '<ul class="list-disc pl-5">';
+      data.endpoints.forEach(e => {
+        html += `<li><strong>${e.method}</strong> ${e.path} — ${e.description}</li>`;
+      });
+      html += '</ul>';
+      document.getElementById('apiDocsList').innerHTML = html;
+    } catch (e) { console.error(e); }
+  }
+
+  // ========== INIT ==========
+  checkAuth();
+</script>
+</body>
+</html>

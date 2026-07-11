@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Payment Gateway</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded-lg shadow-md w-96">
+    <div class="text-center mb-6">
+      <i class="fas fa-wallet text-4xl text-blue-600"></i>
+      <h2 class="text-2xl font-bold mt-2">Payment Gateway</h2>
+      <p class="text-sm text-gray-500">Login atau daftar akun baru</p>
+    </div>
+
+    <!-- Login -->
+    <div id="loginForm">
+      <div class="mb-3">
+        <label class="block text-sm font-medium">Email</label>
+        <input type="email" id="loginEmail" placeholder="admin@demo.com" class="w-full border p-2 rounded mt-1">
+      </div>
+      <div class="mb-3">
+        <label class="block text-sm font-medium">Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" class="w-full border p-2 rounded mt-1">
+      </div>
+      <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded font-semibold">
+        <i class="fas fa-sign-in-alt mr-2"></i> Login
+      </button>
+      <p class="text-center mt-3 text-sm">
+        Belum punya akun? <a href="#" onclick="showRegister()" class="text-blue-600 hover:underline">Daftar</a>
+      </p>
+      <div id="loginMsg" class="mt-2 text-sm text-red-600"></div>
+    </div>
+
+    <!-- Register -->
+    <div id="registerForm" style="display:none;">
+      <div class="mb-3">
+        <label class="block text-sm font-medium">Username</label>
+        <input type="text" id="regUsername" placeholder="Username" class="w-full border p-2 rounded mt-1">
+      </div>
+      <div class="mb-3">
+        <label class="block text-sm font-medium">Email</label>
+        <input type="email" id="regEmail" placeholder="email@example.com" class="w-full border p-2 rounded mt-1">
+      </div>
+      <div class="mb-3">
+        <label class="block text-sm font-medium">Password</label>
+        <input type="password" id="regPassword" placeholder="••••••••" class="w-full border p-2 rounded mt-1">
+      </div>
+      <button onclick="register()" class="w-full bg-green-600 hover:bg-green-700 text-white p-2 rounded font-semibold">
+        <i class="fas fa-user-plus mr-2"></i> Daftar
+      </button>
+      <p class="text-center mt-3 text-sm">
+        Sudah punya akun? <a href="#" onclick="showLogin()" class="text-blue-600 hover:underline">Login</a>
+      </p>
+      <div id="registerMsg" class="mt-2 text-sm text-red-600"></div>
+    </div>
+  </div>
+
+  <script>
+    function showRegister() {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('registerForm').style.display = 'block';
+    }
+    function showLogin() {
+      document.getElementById('loginForm').style.display = 'block';
+      document.getElementById('registerForm').style.display = 'none';
+    }
+
+    async function login() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      const msg = document.getElementById('loginMsg');
+      msg.innerHTML = '';
+      if (!email || !password) { msg.innerHTML = 'Email dan password wajib'; return; }
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem('token', data.token);
+          window.location.href = '/dashboard.html';
+        } else {
+          msg.innerHTML = data.error || 'Login gagal';
+        }
+      } catch (e) { msg.innerHTML = 'Error: ' + e.message; }
+    }
+
+    async function register() {
+      const username = document.getElementById('regUsername').value;
+      const email = document.getElementById('regEmail').value;
+      const password = document.getElementById('regPassword').value;
+      const msg = document.getElementById('registerMsg');
+      msg.innerHTML = '';
+      if (!email || !password) { msg.innerHTML = 'Email dan password wajib'; return; }
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem('token', data.token);
+          window.location.href = '/dashboard.html';
+        } else {
+          msg.innerHTML = data.error || 'Registrasi gagal';
+        }
+      } catch (e) { msg.innerHTML = 'Error: ' + e.message; }
+    }
+
+    // Jika sudah login, redirect ke dashboard
+    if (localStorage.getItem('token')) {
+      fetch('/api/user/profile', {
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+      }).then(res => {
+        if (res.ok) window.location.href = '/dashboard.html';
+      }).catch(() => {});
+    }
+  </script>
+</body>
+</html>
