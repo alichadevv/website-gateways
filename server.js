@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const JWT_SECRET = 'your-super-secret-key';
 const DB_PATH = path.join(__dirname, 'db.json');
 
@@ -263,4 +263,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'profile.html'));
 });
 
-app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;
