@@ -1,0 +1,21 @@
+{
+  "users": [
+    {
+      "id": "u1",
+      "email": "admin@demo.com",
+      "password": "$2a$10$... (hash bcrypt)",
+      "username": "Admin",
+      "role": "admin",
+      "apiKey": "api_live_abc123",
+      "joinedAt": "2025-01-01T00:00:00.000Z"
+    }
+  ],
+  "transactions": [],
+  "withdrawals": [],
+  "balances": {
+    "totalBalance": 1000000,
+    "totalIncome": 0,
+    "totalExpense": 0,
+    "totalTransactions": 0
+  }
+}
