@@ -18,7 +18,6 @@ app.use(express.static('public'));
 
 // ========== Database ==========
 function readDB() {
-  if (!fs.existsSync(DB_PATH)) {
     const initialData = {
       users: [{
         id: id,
@@ -36,7 +35,6 @@ function readDB() {
     fs.writeFileSync(DB_PATH, JSON.stringify(initialData, null, 2));
   }
   return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
-}
 function writeDB(data) { fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2)); }
 
 function getUserFromToken(token) {
@@ -235,8 +233,34 @@ app.get('/api/api-docs', authMiddleware, (req, res) => {
 });
 
 // ========== Root ==========
+app.use('/public', express.static('public'));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'api-docs.html'));
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'withdrawals.html'));
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'transaction.html'));
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'profile.html'));
 });
 
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
