@@ -1,0 +1,80 @@
+/* Reset & Layout */
+* { box-sizing: border-box; margin: 0; }
+body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; }
+.container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+
+/* Navbar (top) */
+.navbar {
+  background: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+.navbar-brand { font-weight: 700; font-size: 1.25rem; }
+.navbar-right { display: flex; align-items: center; gap: 1rem; }
+.navbar-right .saldo { background: #dbeafe; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.9rem; }
+
+/* Sidebar (drawer) - digunakan di semua halaman setelah login */
+.drawer-toggle { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+.drawer {
+  position: fixed; top: 0; left: -280px; width: 280px; height: 100%;
+  background: #1e293b; color: #e2e8f0; transition: left 0.3s; z-index: 1000;
+  padding: 1rem; overflow-y: auto;
+}
+.drawer.open { left: 0; }
+.drawer-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); z-index: 999; display: none;
+}
+.drawer-overlay.open { display: block; }
+.drawer a {
+  display: block; padding: 0.6rem 1rem; color: #cbd5e1; border-radius: 0.5rem;
+  margin-bottom: 0.25rem; text-decoration: none; transition: 0.2s;
+}
+.drawer a:hover, .drawer a.active { background: #334155; color: white; }
+.drawer .menu-icon { margin-right: 0.75rem; width: 1.25rem; }
+.drawer .logout { border-top: 1px solid #475569; margin-top: 1rem; padding-top: 1rem; }
+
+/* Cards & Tables */
+.card { background: white; padding: 1.5rem; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.stat-item { background: white; padding: 1rem; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.stat-item .label { color: #64748b; font-size: 0.875rem; }
+.stat-item .value { font-size: 1.5rem; font-weight: 700; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 0.5rem; background: #f8fafc; }
+td { padding: 0.5rem; border-bottom: 1px solid #e2e8f0; }
+
+.badge {
+  padding: 0.15rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;
+}
+.badge-paid, .badge-success { background: #22c55e; color: white; }
+.badge-pending { background: #eab308; color: white; }
+.badge-failed { background: #ef4444; color: white; }
+
+/* Forms */
+input, select, button { font-family: inherit; }
+.btn {
+  display: inline-block; padding: 0.5rem 1rem; border-radius: 0.5rem;
+  border: none; font-weight: 600; cursor: pointer; transition: 0.2s;
+}
+.btn-primary { background: #2563eb; color: white; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-success { background: #16a34a; color: white; }
+.btn-success:hover { background: #15803d; }
+.btn-danger { background: #dc2626; color: white; }
+.btn-danger:hover { background: #b91c1c; }
+
+/* Modal */
+.modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center; z-index: 2000;
+}
+.modal-content { background: white; padding: 2rem; border-radius: 1rem; max-width: 400px; width: 100%; }
+.modal-content .close { float: right; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
