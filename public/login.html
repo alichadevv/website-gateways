@@ -83,7 +83,7 @@
         const data = await res.json();
         if (res.ok) {
           localStorage.setItem('token', data.token);
-          window.location.href = '/dashboard.html';
+          window.location.href = '/public/dashboard.html';
         } else {
           msg.innerHTML = data.error || 'Login gagal';
         }
@@ -106,7 +106,7 @@
         const data = await res.json();
         if (res.ok) {
           localStorage.setItem('token', data.token);
-          window.location.href = '/dashboard.html';
+          window.location.href = '/public/dashboard.html';
         } else {
           msg.innerHTML = data.error || 'Registrasi gagal';
         }
@@ -118,7 +118,7 @@
       fetch('/api/user/profile', {
         headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
       }).then(res => {
-        if (res.ok) window.location.href = '/dashboard.html';
+        if (res.ok) window.location.href = '/public/dashboard.html';
       }).catch(() => {});
     }
   </script>
