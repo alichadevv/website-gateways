@@ -6,7 +6,7 @@ const TOKEN_KEY = 'token';
 function checkAuth() {
   const token = localStorage.getItem(TOKEN_KEY);
   if (!token) {
-    window.location.href = '/login.html';
+    window.location.href = '/public/login.html';
     return null;
   }
   // Verify token by fetching profile
@@ -19,7 +19,7 @@ function checkAuth() {
     })
     .catch(() => {
       localStorage.removeItem(TOKEN_KEY);
-      window.location.href = '/login.html';
+      window.location.href = '/public/login.html';
       return null;
     });
 }
@@ -28,7 +28,7 @@ function getToken() { return localStorage.getItem(TOKEN_KEY); }
 
 function logout() {
   localStorage.removeItem(TOKEN_KEY);
-  window.location.href = '/login.html';
+  window.location.href = '/public/login.html';
 }
 
 // ========== FETCH HELPERS ==========
@@ -72,7 +72,7 @@ function loadUserInfo() {
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', function() {
   // Cek auth untuk halaman yang membutuhkan login (selain login.html)
-  if (!window.location.pathname.includes('login.html')) {
+  if (!window.location.pathname.includes('public/login.html')) {
     checkAuth().then(user => {
       if (user) {
         loadUserInfo();
